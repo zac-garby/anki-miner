@@ -64,8 +64,22 @@ async function init() {
     await anki('version');
     setStatus('connected', 'connected');
     loadDecks();
+    ankiSync();
   } catch(e) {
     setStatus('not connected', 'error');
+  }
+}
+
+async function ankiSync() {
+  const btn = document.getElementById('syncBtn');
+  if (btn) { btn.textContent = 'syncing…'; btn.disabled = true; }
+  try {
+    await anki('sync');
+    if (btn) { btn.textContent = 'sync'; btn.disabled = false; }
+    showToast('Synced with AnkiWeb');
+  } catch(e) {
+    if (btn) { btn.textContent = 'sync'; btn.disabled = false; }
+    showToast('Sync failed: ' + e.message, true);
   }
 }
 

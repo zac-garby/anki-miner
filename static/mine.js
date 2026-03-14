@@ -127,6 +127,7 @@ async function saveMiningCard() {
       tags: ['mined']
     }});
     showToast('Card saved!');
+    ankiSync();
     document.getElementById('mineSentence').value = '';
     document.getElementById('mineWord').value = '';
     document.getElementById('mineResult').classList.remove('visible');

@@ -364,6 +364,7 @@ async function chatSaveClozeCard(text) {
       }
     });
     showToast('Cloze card saved!');
+    ankiSync();
   } catch(e) {
     showToast('Error saving card: ' + e.message, true);
   }

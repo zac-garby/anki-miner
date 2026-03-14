@@ -202,6 +202,7 @@ function mediaExpandRow(row, sentence, result) {
       mineBtn.textContent = 'Saved';
       mineBtn.disabled = true;
       showToast('Mining card saved!');
+      ankiSync();
     } catch(e) { showToast('Error: ' + e.message, true); }
   };
 
@@ -218,6 +219,7 @@ function mediaExpandRow(row, sentence, result) {
       clozeBtn.textContent = 'Saved';
       clozeBtn.disabled = true;
       showToast('Cloze card saved!');
+      ankiSync();
     } catch(e) { showToast('Error: ' + e.message, true); }
   };
 
