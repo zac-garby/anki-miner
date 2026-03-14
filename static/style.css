@@ -173,6 +173,7 @@ td.front, td.back {
 }
 
 td.back { color: rgb(100, 98, 88); }
+.no-audio { font-size: 0.78em; color: rgb(160, 100, 60); font-style: italic; white-space: nowrap; }
 td.meta { font-size: 0.8em; color: rgb(120, 115, 105); white-space: nowrap; }
 td.actions { white-space: nowrap; }
 
@@ -808,6 +809,8 @@ hr { border: none; border-top: 1px solid rgb(200, 195, 185); margin: 20px 0; }
   /* Browse: hide Back column, keep table scrollable */
   .col-back { display: none; }
   td.back { display: none; }
+  .col-audio { display: none; }
+  td.col-audio { display: none; }
   td.front { max-width: none; white-space: normal; }
   .cards-header { gap: 6px; }
   .cards-header input[type="search"] { width: 100% !important; flex: 1; }

@@ -38,7 +38,7 @@ async function selectDeck(name) {
   document.querySelectorAll('.deck-item').forEach(b => b.classList.toggle('active', b.dataset.deck === name));
   document.getElementById('deckTitle').textContent = name;
   document.getElementById('cardsSection').style.display = 'block';
-  document.getElementById('notesBody').innerHTML = '<tr><td colspan="5" class="muted">loading…</td></tr>';
+  document.getElementById('notesBody').innerHTML = '<tr><td colspan="6" class="muted">loading…</td></tr>';
   document.getElementById('pagination').innerHTML = '';
   document.getElementById('searchInput').value = '';
   updateBulkBar();
@@ -137,7 +137,7 @@ function sortField(n) {
 function renderTable() {
   const tbody = document.getElementById('notesBody');
   if (!filteredNotes.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="muted">No notes found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="muted">No notes found.</td></tr>';
     document.getElementById('selectAll').checked = false;
     return;
   }
@@ -149,11 +149,14 @@ function renderTable() {
     const front = stripHtml(fields[0]?.value || '');
     const back  = stripHtml(fields[1]?.value || '');
     const chk   = selectedIds.has(note.noteId) ? 'checked' : '';
+    const hasAudio = Object.values(note.fields).some(f => /\[sound:/.test(f.value || ''));
+    const audioCell = hasAudio ? '' : '<span class="no-audio">no audio</span>';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><input type="checkbox" ${chk} onchange="toggleSelect(${note.noteId}, this)"></td>
       <td class="front" title="${esc(front)}">${esc(front)}</td>
       <td class="back"  title="${esc(back)}">${esc(back)}</td>
+      <td class="col-audio">${audioCell}</td>
       <td class="actions"><button class="small" onclick="openEditModal(${note.noteId})">edit</button></td>`;
     tbody.appendChild(tr);
   });
