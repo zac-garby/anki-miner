@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anki</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="topbar">
+    <div class="topbar-row">
+      <h1>Anki</h1>
+      <div class="topbar-status-group">
+        <span class="status" id="statusText">connecting…</span>
+        <span class="topbar-divider">·</span>
+        <button class="status-btn" onclick="init()">reconnect</button>
+        <span class="topbar-divider">·</span>
+        <button class="status-btn" onclick="showAnkiKeyModal('Change AnkiConnect API key:')">key</button>
+      </div>
+    </div>
+    <nav class="topbar-nav">
+      <button class="nav-tab active" id="tab-browse" onclick="switchTab('browse')">Browse</button>
+      <button class="nav-tab" id="tab-mine" onclick="switchTab('mine')">Mining</button>
+      <button class="nav-tab" id="tab-chat" onclick="switchTab('chat')">Chat</button>
+      <button class="nav-tab" id="tab-media" onclick="switchTab('media')">Media</button>
+    </nav>
+  </div>
+
+  <div id="deckSection">
+    <h2>Decks</h2>
+    <div class="deck-list" id="deckList"><span class="muted">loading…</span></div>
+  </div>
+
+  <div class="cards-section" id="cardsSection">
+    <hr>
+    <div class="cards-header">
+      <h2 id="deckTitle"></h2>
+      <input type="search" id="searchInput" placeholder="search…" oninput="onSearch()" style="width:170px">
+      <select id="sortSelect" onchange="onSortChange()">
+        <option value="created-desc">Created ↓</option>
+        <option value="created-asc">Created ↑</option>
+        <option value="due-asc">Due ↑</option>
+        <option value="due-desc">Due ↓</option>
+        <option value="alpha-asc">A → Z</option>
+        <option value="alpha-desc">Z → A</option>
+      </select>
+      <button onclick="openAddModal()">+ Add note</button>
+    </div>
+
+    <div class="bulk-bar" id="bulkBar">
+      <span id="bulkCount">0 selected</span>
+      <button onclick="burySelected()">Bury</button>
+      <button onclick="suspendSelected()">Suspend</button>
+      <button class="danger" onclick="deleteSelected()">Delete</button>
+      <button class="small" onclick="clearSelection()" style="margin-left:4px">✕ deselect</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:28px"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
+            <th>Front</th>
+            <th class="col-back">Back</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="notesBody"></tbody>
+      </table>
+    </div>
+
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+</div>
+
+<!-- Mining Section -->
+  <div class="mining-section" id="miningSection">
+    <hr>
+    <h2>Sentence Mining</h2>
+    <div class="mining-form">
+      <div class="mining-row">
+        <label>Sentence</label>
+        <textarea id="mineSentence" placeholder="Paste a Norwegian sentence…" rows="3"></textarea>
+      </div>
+      <div class="mining-row">
+        <label>Word <span style="font-weight:normal;color:rgb(140,135,125)">(optional)</span></label>
+        <input type="text" id="mineWord" placeholder="the word you want to learn, or leave blank" style="flex:1;font-size:0.95em" onkeydown="if(event.key==='Enter')runMining()">
+      </div>
+      <div class="mining-submit-row">
+        <button onclick="runMining()">Analyse</button>
+        <span class="thinking" id="mineThinking">thinking…</span>
+      </div>
+    </div>
+
+    <div class="result-box" id="mineResult">
+      <div class="result-value">
+        <div class="result-label">Translation</div>
+        <div id="mineTranslation" style="font-style:italic"></div>
+      </div>
+      <div class="result-value">
+        <div class="result-label">Breakdown</div>
+        <div id="mineBreakdown"></div>
+      </div>
+      <div class="result-value">
+        <div class="result-label">Meaning</div>
+        <div id="mineMeaning"></div>
+      </div>
+      <hr style="margin:12px 0">
+      <div class="deck-select-row">
+        <label style="font-style:italic;font-size:0.82em;color:rgb(100,98,88)">Deck:</label>
+        <select id="mineDeckSelect"></select>
+        <button onclick="saveMiningCard()">Save as card</button>
+      </div>
+    </div>
+  </div>
+
+<!-- Chat Section -->
+<div class="chat-section" id="chatSection">
+  <hr>
+  <div class="chat-layout">
+    <div class="chat-sidebar">
+      <button onclick="chatNewConversation()" style="width:100%;margin-bottom:8px">+ New chat</button>
+      <div id="convList" class="conv-list"></div>
+    </div>
+    <div class="chat-main">
+      <div class="chat-config">
+        <div class="chat-config-row">
+          <div class="preset-btns">
+            <span class="field-label" style="margin:0;margin-right:6px;padding-top:0">Preset:</span>
+            <button class="small" onclick="chatSetPreset('tutor')">Tutor</button>
+            <button class="small" onclick="chatSetPreset('cafe')">Café</button>
+            <button class="small" onclick="chatSetPreset('interview')">Intervju</button>
+            <button class="small" onclick="chatSetPreset('friend')">Venn</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <label class="field-label" style="margin:0">Deck:</label>
+            <select id="chatDeckSelect" style="font-size:0.82em;padding:3px 6px"></select>
+          </div>
+        </div>
+        <textarea id="chatSystem" rows="2" placeholder="System prompt…" oninput="chatOnSystemChange()" class="chat-system-textarea"></textarea>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-row">
+        <textarea id="chatInput" placeholder="Skriv på norsk… (Enter = send, Shift+Enter = ny linje)" rows="3" onkeydown="chatOnKey(event)"></textarea>
+        <button onclick="chatSend()" id="chatSendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Media Section -->
+<div class="media-section" id="mediaSection">
+  <hr>
+  <h2>Media Mining</h2>
+  <div class="media-input-area">
+    <div class="media-input-row">
+      <input type="url" id="mediaUrl" placeholder="YouTube / NRK URL…" style="flex:1">
+      <button onclick="mediaFetchUrl()">Fetch subtitles</button>
+      <span style="color:rgb(140,135,125);font-size:0.88em">or</span>
+      <label class="media-upload-label">
+        Upload file
+        <input type="file" id="mediaFile" accept=".srt,.vtt,.txt" onchange="mediaUploadFile()" style="display:none">
+      </label>
+    </div>
+    <div class="media-config-row">
+      <label class="field-label" style="margin:0">Deck:</label>
+      <select id="mediaDeckSelect" style="font-size:0.88em;padding:3px 6px"></select>
+    </div>
+  </div>
+
+  <div id="mediaStatus" style="display:none;font-size:0.88em;color:rgb(100,98,88);margin-bottom:8px"></div>
+  <div class="media-results" id="mediaResults"></div>
+</div>
+
+<!-- AnkiConnect key modal -->
+<div class="modal-bg" id="ankiKeyModal" style="display:none" onclick="if(event.target===this)hideAnkiKeyModal()">
+  <div class="modal" style="max-width:360px">
+    <h3 id="ankiKeyMsg">Enter AnkiConnect API key:</h3>
+    <input type="password" id="ankiKeyInput" placeholder="API key" style="width:100%;box-sizing:border-box;margin-bottom:12px;font-size:0.95em" onkeydown="if(event.key==='Enter')saveAnkiKey()">
+    <div class="modal-actions">
+      <button onclick="hideAnkiKeyModal()">Cancel</button>
+      <button onclick="saveAnkiKey()">Save &amp; reconnect</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modal" onclick="onModalBgClick(event)">
+  <div class="modal">
+    <h3 id="modalTitle">Edit note</h3>
+    <div id="modalFields"></div>
+    <div class="modal-actions">
+      <button onclick="closeModal()">Cancel</button>
+      <button onclick="saveNote()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/static/app.js"></script>
+<script src="/static/browse.js"></script>
+<script src="/static/mine.js"></script>
+<script src="/static/chat.js"></script>
+<script src="/static/media.js"></script>
+</body>
+</html>
