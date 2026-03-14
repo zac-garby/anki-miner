@@ -157,6 +157,46 @@ def fetch_subtitles():
     return jsonify({'sentences': sentences, 'subtitle_file': chosen})
 
 
+@app.route('/lookup-word')
+def lookup_word():
+    word = request.args.get('w', '').strip()
+    if not word:
+        return jsonify({'found': False})
+    try:
+        r = requests.get(
+            'https://ord.uib.no/api/articles',
+            params={'w': word, 'dict': 'bm', 'scope': 'ei'},
+            timeout=5,
+        )
+        ids = r.json().get('articles', {}).get('bm', [])
+        if not ids:
+            return jsonify({'found': False, 'word': word})
+
+        r2 = requests.get(f'https://ord.uib.no/bm/article/{ids[0]}.json', timeout=5)
+        article = r2.json()
+
+        lemmas = []
+        for lemma_obj in article.get('lemmas', []):
+            info = {
+                'lemma': lemma_obj['lemma'],
+                'class': lemma_obj.get('inflection_class', ''),
+            }
+            # Find which inflected form matched the query and note its tags
+            for paradigm in lemma_obj.get('paradigm_info', []):
+                info['pos'] = paradigm.get('tags', [None])[0]
+                for infl in paradigm.get('inflection', []):
+                    if infl['word_form'].lower() == word.lower():
+                        info['form_tags'] = infl['tags']
+                        break
+                if 'form_tags' in info:
+                    break
+            lemmas.append(info)
+
+        return jsonify({'found': True, 'word': word, 'lemmas': lemmas})
+    except Exception as e:
+        return jsonify({'found': False, 'error': str(e)})
+
+
 @app.route('/upload-subtitles', methods=['POST'])
 def upload_subtitles():
     if 'file' not in request.files:

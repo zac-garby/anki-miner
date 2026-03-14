@@ -58,7 +58,7 @@ async function runMining() {
 
   try {
     const wordLine = word
-      ? `Difficult word/phrase: "${word}"\n\nInclude "${word}" as one of the breakdown items (use the closest match if it appears differently in the sentence).`
+      ? `Difficult word/phrase: "${word}"\n\nInclude "${word}" as one of the breakdown items (use the closest match if it appears differently in the sentence). The entirety of "${word}" should be a single breakdown item.`
       : 'No specific word provided — break down the whole sentence and highlight any words or phrases a B1 learner might find tricky.';
 
     const prompt = `You are helping a Norwegian language learner with sentence mining.
@@ -95,13 +95,18 @@ Respond in this exact JSON format with no other text:
     const text = data.content?.[0]?.text || '';
     const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
 
+    document.getElementById('mineThinking').textContent = 'verifying…';
+    const breakdown = await verifyAndCorrectBreakdown(sentence, parsed.breakdown);
+
     document.getElementById('mineTranslation').textContent = parsed.translation;
-    renderBreakdown(parsed.breakdown, word);
+    renderBreakdown(breakdown, word);
     document.getElementById('mineResult').classList.add('visible');
   } catch(e) {
     showToast('Error: ' + e.message, true);
   } finally {
-    document.getElementById('mineThinking').style.display = 'none';
+    const t = document.getElementById('mineThinking');
+    t.style.display = 'none';
+    t.textContent = 'thinking…';
   }
 }
 

@@ -98,10 +98,16 @@ async function mediaAnalyseSentence(row, sentence, sentenceEl) {
 
   try {
     const result = await mediaCallAnalysis(sentence);
+
     sentenceEl.classList.remove('media-sentence-analysing');
+    sentenceEl.classList.add('media-sentence-verifying');
+
+    result.breakdown = await verifyAndCorrectBreakdown(sentence, result.breakdown || []);
+
+    sentenceEl.classList.remove('media-sentence-verifying');
     mediaExpandRow(row, sentence, result);
   } catch(e) {
-    sentenceEl.classList.remove('media-sentence-analysing');
+    sentenceEl.classList.remove('media-sentence-analysing', 'media-sentence-verifying');
     sentenceEl.classList.add('media-sentence-clickable');
     sentenceEl.onclick = () => mediaAnalyseSentence(row, sentence, sentenceEl);
     showToast('Analysis failed: ' + e.message, true);

@@ -123,6 +123,61 @@ function showToast(msg, isError=false) {
   t._timer = setTimeout(() => t.className = 'toast', 2800);
 }
 
+// ── ordbokene.no verification ────────────────────────────────
+async function verifyAndCorrectBreakdown(sentence, breakdown) {
+  // Batch-lookup all words in parallel
+  const lookups = await Promise.all(
+    breakdown.map(item =>
+      fetch('/lookup-word?w=' + encodeURIComponent(item.text))
+        .then(r => r.json())
+        .catch(() => ({ found: false }))
+    )
+  );
+
+  // Format dictionary data for Claude
+  const dictLines = lookups.map((result, i) => {
+    if (!result.found || !result.lemmas?.length) return null;
+    const item = breakdown[i];
+    const lemmaStr = result.lemmas.map(l => {
+      let s = `"${l.lemma}" (${l.pos || l.class}`;
+      if (l.form_tags?.length) s += ', ' + l.form_tags.join('/');
+      s += ')';
+      return s;
+    }).join(', ');
+    return `"${item.text}" → ${lemmaStr}`;
+  }).filter(Boolean);
+
+  if (!dictLines.length) return breakdown;
+
+  const prompt =
+`You provided this word-by-word breakdown for the Norwegian sentence "${sentence}":
+${JSON.stringify(breakdown)}
+
+Here is what the Norwegian dictionary (ordbokene.no) says about each word:
+${dictLines.join('\n')}
+
+Check each entry. Correct any errors — especially wrong verb infinitives (use exactly å + the lemma the dictionary gives). If everything is correct, return it unchanged. Return ONLY valid JSON:
+{"breakdown": [{"text": "...", "meaning": "..."}]}`;
+
+  try {
+    const resp = await fetch('/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 768,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content?.[0]?.text || '{}';
+    const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+    return parsed.breakdown || breakdown;
+  } catch {
+    return breakdown;
+  }
+}
+
 // ── Tab switching ─────────────────────────────────────────────
 const TABS = ['browse', 'mine', 'chat', 'media'];
 
