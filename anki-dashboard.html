@@ -137,6 +137,7 @@
             <button class="small" onclick="chatSetPreset('cafe')">Café</button>
             <button class="small" onclick="chatSetPreset('interview')">Intervju</button>
             <button class="small" onclick="chatSetPreset('friend')">Venn</button>
+            <button class="small" onclick="chatSetPreset('corrections')">Corrections</button>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
             <label class="field-label" style="margin:0">Deck:</label>
@@ -148,7 +149,10 @@
       <div class="chat-messages" id="chatMessages"></div>
       <div class="chat-input-row">
         <textarea id="chatInput" placeholder="Skriv på norsk… (Enter = send, Shift+Enter = ny linje)" rows="3" onkeydown="chatOnKey(event)"></textarea>
-        <button onclick="chatSend()" id="chatSendBtn">Send</button>
+        <div class="chat-send-btns">
+          <button onclick="chatSend()" id="chatSendBtn">Send</button>
+          <button onclick="chatAIFirst()" id="chatAIFirstBtn" class="small" title="Let the AI send the first message">AI first</button>
+        </div>
       </div>
     </div>
   </div>

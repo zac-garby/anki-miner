@@ -123,6 +123,67 @@ function showToast(msg, isError=false) {
   t._timer = setTimeout(() => t.className = 'toast', 2800);
 }
 
+// ── Shared deck select ───────────────────────────────────────
+async function populateDeckSelect(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const prev = sel.value;
+  try {
+    const names = await anki('deckNames');
+    names.sort();
+    sel.innerHTML = '';
+    names.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      if (name === 'Norsk::Sentences') opt.selected = true;
+      else if (prev && name === prev) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  } catch { /* Anki not connected */ }
+}
+
+// ── Shared breakdown analysis ─────────────────────────────────
+async function callBreakdownAnalysis(sentence, word = null) {
+  const wordLine = word
+    ? `Difficult word/phrase: "${word}"\n\nInclude "${word}" as one of the breakdown items (use the closest match if it appears differently in the sentence). The entirety of "${word}" should be a single breakdown item.`
+    : 'No specific word provided — break down the whole sentence and highlight any words or phrases a B1 learner might find tricky.';
+
+  const prompt = `You are helping a Norwegian language learner with sentence mining.
+
+Sentence: "${sentence}"
+${wordLine}
+
+Please provide:
+1. A natural English translation of the full sentence.
+2. A breakdown of the sentence into meaningful parts. Each part should be a single word, a set phrase, or a notable grammatical construction. For each part give:
+   - "text": the word or phrase as it appears in the sentence
+   - "meaning": a brief explanation. For verbs, always identify the correct infinitive form (å + verb) — be careful with irregular past participles and forms that resemble other verbs (e.g. "spydd" is from "å spy", not "å spytte"). Prefer a Norwegian synonym or simple Norwegian definition if a B1 Norwegian learner would understand it; otherwise use an English gloss. Keep it brief (a word or short phrase). Do NOT repeat the word itself as the meaning.
+
+Respond in this exact JSON format with no other text:
+{
+  "translation": "...",
+  "breakdown": [
+    {"text": "...", "meaning": "..."},
+    {"text": "...", "meaning": "..."}
+  ]
+}`;
+
+  const resp = await fetch('/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error.message);
+  const text = data.content?.[0]?.text || '{}';
+  return JSON.parse(text.replace(/```json|```/g, '').trim());
+}
+
 // ── ordbokene.no verification ────────────────────────────────
 async function verifyAndCorrectBreakdown(sentence, breakdown) {
   // Batch-lookup all words in parallel

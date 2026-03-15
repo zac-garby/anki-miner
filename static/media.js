@@ -6,25 +6,7 @@
 })();
 
 function mediaInitTab() {
-  mediaPopulateDeckSelect();
-}
-
-async function mediaPopulateDeckSelect() {
-  const sel = document.getElementById('mediaDeckSelect');
-  const prev = sel.value;
-  try {
-    const names = await anki('deckNames');
-    names.sort();
-    sel.innerHTML = '';
-    names.forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = name;
-      opt.textContent = name;
-      if (name === 'Norsk::Sentences') opt.selected = true;
-      else if (prev && name === prev) opt.selected = true;
-      sel.appendChild(opt);
-    });
-  } catch { /* Anki not connected */ }
+  populateDeckSelect('mediaDeckSelect');
 }
 
 async function mediaFetchUrl() {
@@ -97,7 +79,7 @@ async function mediaAnalyseSentence(row, sentence, sentenceEl) {
   sentenceEl.classList.add('media-sentence-analysing');
 
   try {
-    const result = await mediaCallAnalysis(sentence);
+    const result = await callBreakdownAnalysis(sentence);
 
     sentenceEl.classList.remove('media-sentence-analysing');
     sentenceEl.classList.add('media-sentence-verifying');
@@ -114,39 +96,6 @@ async function mediaAnalyseSentence(row, sentence, sentenceEl) {
   }
 }
 
-async function mediaCallAnalysis(sentence) {
-  const prompt = `You are helping a Norwegian language learner with sentence mining.
-
-Sentence: "${sentence}"
-
-Please provide:
-1. A natural English translation of the full sentence.
-2. A breakdown of the sentence into meaningful parts. Each part should be a single word, a set phrase, or a notable grammatical construction. For each part give:
-   - "text": the word or phrase as it appears in the sentence
-   - "meaning": a brief explanation. For verbs, always identify the correct infinitive form (å + verb) — be careful with irregular past participles and forms that resemble other verbs (e.g. "spydd" is from "å spy", not "å spytte"). Prefer a Norwegian synonym or simple Norwegian definition if a B1 Norwegian learner would understand it; otherwise use an English gloss. Keep it brief (a word or short phrase). Do NOT repeat the word itself as the meaning.
-
-Respond in this exact JSON format with no other text:
-{
-  "translation": "...",
-  "breakdown": [
-    {"text": "...", "meaning": "..."}
-  ]
-}`;
-
-  const resp = await fetch('/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
-  const data = await resp.json();
-  if (data.error) throw new Error(data.error.message);
-  const text = data.content?.[0]?.text || '{}';
-  return JSON.parse(text.replace(/```json|```/g, '').trim());
-}
 
 function mediaExpandRow(row, sentence, result) {
   // Translation

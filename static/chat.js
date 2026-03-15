@@ -4,7 +4,8 @@ const CHAT_PRESETS = {
   tutor: 'You are a helpful Norwegian language tutor. Chat naturally in Norwegian at a B1–B2 level. Keep responses conversational and relatively brief (2–4 sentences unless asked for more).',
   cafe: 'Du er en servitør på en hyggelig kafe i Oslo. Kunden (brukeren) ønsker å bestille mat og drikke. Hold deg i rollen, svar naturlig på norsk, og vær vennlig og litt uformell.',
   interview: 'Du er en intervjuer i et norsk teknologiselskap. Gjennomfør et jobbintervju på norsk med kandidaten (brukeren). Still relevante spørsmål og gi naturlige oppfølgingssvar.',
-  friend: 'Du er en norsk venn som snakker uformelt og hverdagslig. Bruk dagligdags norsk, gjerne med litt slang. Svar kort og naturlig, som i en ekte tekstsamtale.'
+  friend: 'Du er en norsk venn som snakker uformelt og hverdagslig. Bruk dagligdags norsk, gjerne med litt slang. Svar kort og naturlig, som i en ekte tekstsamtale.',
+  corrections: "You are a helpful Norwegian language tutor, and grammar expert. Your task is not to reply to the content of the user's messages normally, as such, but instead you should analyse their grammar and sentence structure. If there are any mistakes, make sure you point these out. If there are any places where the sentence is technically correct but could be improved to sound more natural/native, point these out too. It is likely that the user's messages will seem random and not coherent with respect to previous messages."
 };
 
 function chatLoad() {
@@ -35,22 +36,8 @@ function chatInitTab() {
   }
 }
 
-async function chatPopulateDeckSelect() {
-  const sel = document.getElementById('chatDeckSelect');
-  const prev = sel.value;
-  try {
-    const names = await anki('deckNames');
-    names.sort();
-    sel.innerHTML = '';
-    names.forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = name;
-      opt.textContent = name;
-      if (name === 'Norsk::Sentences') opt.selected = true;
-      else if (prev && name === prev) opt.selected = true;
-      sel.appendChild(opt);
-    });
-  } catch { /* Anki not connected; leave empty */ }
+function chatPopulateDeckSelect() {
+  populateDeckSelect('chatDeckSelect');
 }
 
 function chatNewConversation() {
@@ -84,26 +71,54 @@ function chatRenderConvList() {
   chatConversations.forEach(conv => {
     const div = document.createElement('div');
     div.className = 'conv-item' + (conv.id === chatCurrentId ? ' active' : '');
-    div.textContent = conv.title;
     div.title = conv.title;
     div.onclick = () => chatSelectConversation(conv.id);
+
+    const title = document.createElement('span');
+    title.className = 'conv-item-title';
+    title.textContent = conv.title;
+
+    const del = document.createElement('button');
+    del.className = 'conv-delete-btn';
+    del.textContent = '×';
+    del.title = 'Delete conversation';
+    del.onclick = e => { e.stopPropagation(); chatDeleteConversation(conv.id); };
+
+    div.appendChild(title);
+    div.appendChild(del);
     el.appendChild(div);
   });
+}
+
+function chatDeleteConversation(id) {
+  chatConversations = chatConversations.filter(c => c.id !== id);
+  chatSave();
+  if (chatCurrentId === id) {
+    chatCurrentId = chatConversations[0]?.id || null;
+    if (!chatCurrentId) {
+      chatNewConversation();
+      return;
+    }
+  }
+  chatRenderConvList();
+  chatRenderMessages();
 }
 
 function chatRenderMessages() {
   const el = document.getElementById('chatMessages');
   const conv = chatCurrentConv();
-  if (!conv || !conv.messages.length) {
+  const hasMessages = conv && conv.messages.length > 0;
+  document.getElementById('chatAIFirstBtn').style.display = hasMessages ? 'none' : '';
+  if (!hasMessages) {
     el.innerHTML = '<div class="chat-empty">Start the conversation…</div>';
     return;
   }
   el.innerHTML = '';
-  conv.messages.forEach(msg => el.appendChild(chatBuildMessage(msg)));
+  conv.messages.forEach((msg, idx) => el.appendChild(chatBuildMessage(msg, idx)));
   el.scrollTop = el.scrollHeight;
 }
 
-function chatBuildMessage(msg) {
+function chatBuildMessage(msg, idx) {
   const wrap = document.createElement('div');
   wrap.className = 'chat-msg ' + msg.role;
 
@@ -116,6 +131,16 @@ function chatBuildMessage(msg) {
   } else {
     bubble.textContent = msg.content;
   }
+
+  if (!msg._thinking) {
+    const del = document.createElement('button');
+    del.className = 'msg-delete-btn';
+    del.textContent = '×';
+    del.title = 'Delete message';
+    del.onclick = () => chatDeleteMessage(idx);
+    bubble.appendChild(del);
+  }
+
   wrap.appendChild(bubble);
 
   if (msg.role === 'user' && msg.analysis) {
@@ -124,19 +149,55 @@ function chatBuildMessage(msg) {
   return wrap;
 }
 
+function chatDeleteMessage(idx) {
+  const conv = chatCurrentConv();
+  if (!conv) return;
+  conv.messages.splice(idx, 1);
+  conv.updatedAt = Date.now();
+  chatSave();
+  chatRenderMessages();
+}
+
+function mdInline(text) {
+  // Apply inline markdown to already-escaped HTML text
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\_\_(.+?)\_\_/g, '<strong>$1</strong>')
+    .replace(/\_(.+?)\_/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code class="inline-code">$1</code>')
+}
+
 function chatRenderAssistantText(text, container) {
-  const paras = text.split(/\n{2,}/);
-  paras.forEach((para, pi) => {
-    if (pi > 0) container.appendChild(document.createElement('br'));
-    if (!para.trim()) return;
-    const segs = para.match(/[^.!?]+[.!?]*\s*/g) || [para];
+  const blocks = text.split(/\n{2,}/);
+  blocks.forEach((block, bi) => {
+    if (bi > 0) container.appendChild(document.createElement('br'));
+    if (!block.trim()) return;
+
+    const lines = block.split('\n').map(l => l.trimEnd());
+    const isList = lines.every(l => /^[-*]\s/.test(l) || !l);
+    if (isList) {
+      const ul = document.createElement('ul');
+      ul.className = 'chat-list';
+      lines.filter(l => l.trim()).forEach(l => {
+        const li = document.createElement('li');
+        li.innerHTML = mdInline(esc(l.replace(/^[-*]\s+/, '')));
+        ul.appendChild(li);
+      });
+      container.appendChild(ul);
+      return;
+    }
+
+    // Regular paragraph: split into sentences and make each clickable
+    const combined = lines.join(' ');
+    const segs = combined.match(/[^.!?]+[.!?]*\s*/g) || [combined];
     segs.forEach(seg => {
       const s = seg.trim();
       if (!s) return;
       const span = document.createElement('span');
       span.className = 'chat-sentence';
       span.title = 'Open in Sentence Mining';
-      span.textContent = s + ' ';
+      span.innerHTML = mdInline(esc(s)) + ' ';
       span.onclick = () => chatMine(s);
       container.appendChild(span);
     });
@@ -223,6 +284,39 @@ function chatBuildAnalysis(analysis) {
 
   outer.appendChild(body);
   return outer;
+}
+
+async function chatAIFirst() {
+  const conv = chatCurrentConv();
+  if (!conv || conv.messages.length) return;
+
+  const btn = document.getElementById('chatAIFirstBtn');
+  btn.disabled = true;
+
+  const thinkingMsg = { role: 'assistant', content: '', timestamp: Date.now(), _thinking: true };
+  conv.messages.push(thinkingMsg);
+  chatSave();
+  chatRenderMessages();
+
+  try {
+    const replyText = await chatCallAPI(
+      [{ role: 'user', content: 'Please start the conversation.' }],
+      conv.systemPrompt + `
+      General considerations: You may output markdown, but you may only use inline elements (**bold**, *italic*, and \`code\`). Try not to be too verbose unless it's called for. Generally, try to use as natural and native-sounding idiomatic Norwegian as possible.`
+    );
+    conv.messages.pop();
+    conv.messages.push({ role: 'assistant', content: replyText, timestamp: Date.now() });
+    conv.updatedAt = Date.now();
+    chatSave();
+    chatRenderMessages();
+  } catch(e) {
+    conv.messages.pop();
+    chatSave();
+    chatRenderMessages();
+    showToast('Chat error: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function chatSend() {
@@ -315,7 +409,7 @@ Using the conversation context above to understand what is being discussed, chec
     {"original": "the exact problematic phrase", "correction": "how a native would say it", "explanation": "brief explanation"}
   ],
   "cards": [
-    {"text": "corrected full sentence with {{c1::the english of what they intended to say::the correct Norwegian part of the sentence}}"}
+    {"text": "corrected full sentence with {{c1::riktig norsk ord::english prompt for learner}}"}
   ],
   "verdict": "perfect"
 }
@@ -324,7 +418,7 @@ Rules:
 - If there are no issues, return "issues": [], "cards": [], "verdict": "perfect"
 - Only flag genuine errors, not stylistic alternatives
 - Only include a card for actual mistakes, not correct usage
-- The "text" field must use valid Anki cloze syntax: {{c1::correct}}, {{c2::correct}}, etc.
+- The "text" field must use Anki cloze syntax: {{c1::norsk_ord::english prompt}}, {{c2::norsk_ord::english prompt}}, etc. The FIRST part is always the correct Norwegian word/phrase. The SECOND part is ALWAYS a short English hint shown to the learner as a prompt (e.g. "to run", "the dog", "last night"). Never put Norwegian in the hint part.
 - verdict is one of: "perfect", "minor", "major"`;
 
   const resp = await fetch('/messages', {
