@@ -237,6 +237,13 @@ function chatBuildAnalysis(analysis) {
     toggle.textContent = open ? '▸' : '▾';
   };
 
+  if (analysis.translation) {
+    const tr = document.createElement('div');
+    tr.className = 'analysis-translation';
+    tr.textContent = analysis.translation;
+    body.appendChild(tr);
+  }
+
   if (!hasIssues) {
     outer.appendChild(body);
     return outer;
@@ -405,6 +412,7 @@ Learner's latest message: "${userMsg}"
 
 Using the conversation context above to understand what is being discussed, check the learner's message for grammar errors and unnatural phrasing. Do NOT flag things that are correct in context. Return ONLY valid JSON in this exact format — no other text:
 {
+  "translation": "natural English translation of the learner's message",
   "issues": [
     {"original": "the exact problematic phrase", "correction": "how a native would say it", "explanation": "brief explanation"}
   ],
@@ -415,6 +423,7 @@ Using the conversation context above to understand what is being discussed, chec
 }
 
 Rules:
+- Always include a "translation" field with a natural English translation of the learner's message
 - If there are no issues, return "issues": [], "cards": [], "verdict": "perfect"
 - Only flag genuine errors, not stylistic alternatives
 - Only include a card for actual mistakes, not correct usage

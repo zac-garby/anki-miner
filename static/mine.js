@@ -62,6 +62,36 @@ async function runMining() {
   }
 }
 
+async function saveMiningClozeCard() {
+  const sentence = document.getElementById('mineSentence').value.trim();
+  const word = document.getElementById('mineWord').value.trim();
+  const meaning = document.getElementById('mineMeaning').textContent.trim();
+  const deck = document.getElementById('mineDeckSelect').value;
+
+  if (!deck) { showToast('Please select a deck', true); return; }
+  if (!word) { showToast('Please select a word from the breakdown first', true); return; }
+
+  // Build cloze: replace first occurrence of the word in sentence
+  const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+  const clozeText = sentence.replace(regex, `{{c1::${word}::${meaning}}}`);
+
+  try {
+    await anki('addNote', {note: {
+      deckName: deck,
+      modelName: 'Cloze',
+      fields: { 'Text': clozeText },
+      tags: ['mined']
+    }});
+    showToast('Cloze card saved!');
+    ankiSync();
+    document.getElementById('mineSentence').value = '';
+    document.getElementById('mineWord').value = '';
+    document.getElementById('mineResult').classList.remove('visible');
+  } catch(e) {
+    showToast('Error saving: ' + e.message, true);
+  }
+}
+
 async function saveMiningCard() {
   const sentence = document.getElementById('mineSentence').value.trim();
   const word = document.getElementById('mineWord').value.trim();

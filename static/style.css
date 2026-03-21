@@ -627,6 +627,7 @@ hr { border: none; border-top: 1px solid rgb(200, 195, 185); margin: 20px 0; }
 }
 
 .chat-analysis-body { margin-top: 6px; }
+.analysis-translation { font-style: italic; color: rgb(100,98,88); font-size: 0.88em; margin-bottom: 6px; }
 
 .analysis-verdict.good { color: rgb(60, 120, 60); }
 .analysis-verdict.warn { color: rgb(150, 110, 30); }
