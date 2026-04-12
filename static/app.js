@@ -240,7 +240,7 @@ Check each entry. Correct any errors — especially wrong verb infinitives (use 
 }
 
 // ── Tab switching ─────────────────────────────────────────────
-const TABS = ['browse', 'mine', 'chat', 'media'];
+const TABS = ['mine', 'chat', 'media', 'translate'];
 
 function switchTab(tab, pushState = true) {
   document.getElementById('deckSection').style.display = tab === 'browse' ? '' : 'none';
@@ -248,10 +248,12 @@ function switchTab(tab, pushState = true) {
   document.getElementById('miningSection').style.display = tab === 'mine' ? 'block' : 'none';
   document.getElementById('chatSection').style.display = tab === 'chat' ? 'block' : 'none';
   document.getElementById('mediaSection').style.display = tab === 'media' ? 'block' : 'none';
+  document.getElementById('translateSection').style.display = tab === 'translate' ? 'block' : 'none';
   TABS.forEach(t => document.getElementById('tab-' + t).classList.toggle('active', t === tab));
   if (tab === 'mine') populateMineDeckSelect();
   if (tab === 'chat') chatInitTab();
   if (tab === 'media') mediaInitTab();
+  if (tab === 'translate') translateOnShow();
   if (pushState) location.hash = tab;
 }
 

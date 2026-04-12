@@ -11,7 +11,7 @@
 
   <div class="topbar">
     <div class="topbar-row">
-      <h1>Anki</h1>
+      <span class="home-link" onclick="switchTab('browse', false)">Anki</span>
       <div class="topbar-status-group">
         <span class="status" id="statusText">connecting…</span>
         <span class="topbar-divider">·</span>
@@ -23,10 +23,10 @@
       </div>
     </div>
     <nav class="topbar-nav">
-      <button class="nav-tab active" id="tab-browse" onclick="switchTab('browse')">Browse</button>
       <button class="nav-tab" id="tab-mine" onclick="switchTab('mine')">Mining</button>
       <button class="nav-tab" id="tab-chat" onclick="switchTab('chat')">Chat</button>
       <button class="nav-tab" id="tab-media" onclick="switchTab('media')">Media</button>
+      <button class="nav-tab" id="tab-translate" onclick="switchTab('translate')">Translate</button>
     </nav>
   </div>
 
@@ -183,6 +183,39 @@
   <div class="media-results" id="mediaResults"></div>
 </div>
 
+<!-- Translate Section -->
+<div id="translateSection" style="display:none">
+  <div class="translate-top-row">
+    <div class="translate-pane">
+      <div class="translate-lang-bar">
+        <select id="translateFromLang"></select>
+        <input type="text" id="translateFromCustom" class="translate-custom-lang" placeholder="Language name…" style="display:none">
+      </div>
+      <div class="translate-source-wrap">
+        <textarea id="translateSource" class="translate-textarea" placeholder="Enter text to translate…"></textarea>
+        <button id="translatePasteBtn" class="translate-paste-btn" onclick="translatePaste()" title="Paste from clipboard">Paste</button>
+      </div>
+    </div>
+    <div class="translate-swap-col">
+      <button class="translate-swap-btn status-btn" onclick="translateSwap()" title="Swap languages">⇄</button>
+    </div>
+    <div class="translate-pane">
+      <div class="translate-lang-bar">
+        <select id="translateToLang"></select>
+        <input type="text" id="translateToCustom" class="translate-custom-lang" placeholder="Language name…" style="display:none">
+        <button class="status-btn translate-copy-btn" onclick="translateCopy()" title="Copy translation">Copy</button>
+      </div>
+      <div id="translateOutput" class="translate-output">
+        <span id="translateThinking" style="display:none" class="thinking">translating…</span>
+      </div>
+    </div>
+  </div>
+  <div class="translate-history-section">
+    <div class="translate-history-header">History</div>
+    <div id="translateHistoryList" class="translate-history-list"></div>
+  </div>
+</div>
+
 <!-- AnkiConnect key modal -->
 <div class="modal-bg" id="ankiKeyModal" style="display:none" onclick="if(event.target===this)hideAnkiKeyModal()">
   <div class="modal" style="max-width:360px">
@@ -214,5 +247,6 @@
 <script src="/static/mine.js"></script>
 <script src="/static/chat.js"></script>
 <script src="/static/media.js"></script>
+<script src="/static/translate.js"></script>
 </body>
 </html>
