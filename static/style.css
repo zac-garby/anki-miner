@@ -681,6 +681,18 @@ hr { border: none; border-top: 1px solid rgb(200, 195, 185); margin: 20px 0; }
   word-break: break-word;
 }
 
+.cloze-preview-edit {
+  font-family: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+  font-size: 0.9em;
+  background: rgb(232, 230, 220);
+  padding: 5px 7px;
+  border: 1px solid rgb(200, 195, 185);
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  color: rgb(50, 48, 40);
+}
+
 .chat-input-row {
   display: flex;
   gap: 8px;
@@ -815,15 +827,16 @@ hr { border: none; border-top: 1px solid rgb(200, 195, 185); margin: 20px 0; }
 
 .media-actions {
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 2px;
 }
 
 .media-cloze-preview {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 120px;
+  width: 100%;
 }
 
 .table-wrap {

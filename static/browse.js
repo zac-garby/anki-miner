@@ -152,6 +152,7 @@ function renderTable() {
     const hasAudio = Object.values(note.fields).some(f => /\[sound:/.test(f.value || ''));
     const audioCell = hasAudio ? '' : '<span class="no-audio">no audio</span>';
     const tr = document.createElement('tr');
+    tr.dataset.noteId = note.noteId;
     tr.innerHTML = `
       <td><input type="checkbox" ${chk} onchange="toggleSelect(${note.noteId}, this)"></td>
       <td class="front" title="${esc(front)}">${esc(front)}</td>
@@ -236,6 +237,44 @@ function updateBulkBar() {
   const n = selectedIds.size;
   document.getElementById('bulkBar').classList.toggle('visible', n > 0);
   document.getElementById('bulkCount').textContent = `${n} selected`;
+  const noAudioCount = [...selectedIds]
+    .map(id => allNotes.find(note => note.noteId === id))
+    .filter(n => n && !Object.values(n.fields).some(f => /\[sound:/.test(f.value || '')))
+    .length;
+  const audioBtn = document.getElementById('bulkAudioBtn');
+  audioBtn.textContent = `Generate audio (${noAudioCount})`;
+  audioBtn.disabled = noAudioCount === 0;
+}
+
+async function generateAudioSelected() {
+  const notesWithoutAudio = [...selectedIds]
+    .map(id => allNotes.find(n => n.noteId === id))
+    .filter(n => n && !Object.values(n.fields).some(f => /\[sound:/.test(f.value || '')));
+  if (!notesWithoutAudio.length) { showToast('All selected notes already have audio'); return; }
+
+  const total = notesWithoutAudio.length;
+  const audioBtn = document.getElementById('bulkAudioBtn');
+  let count = 0;
+
+  for (const note of notesWithoutAudio) {
+    const text = stripHtml(Object.values(note.fields)[0]?.value || '').trim();
+    if (!text) continue;
+    audioBtn.textContent = `Generating… ${count + 1}/${total}`;
+    audioBtn.disabled = true;
+    const audioUrl = `http://157.90.155.24:5001/generate?text=${encodeURIComponent(text)}&scale=1.2`;
+    const filename = `${note.noteId}_audio.mp3`;
+    try {
+      await anki('updateNote', { note: { id: note.noteId, fields: {}, audio: [{ url: audioUrl, filename, fields: ['Audio'] }] } });
+      count++;
+      // Remove the "no audio" badge for this row immediately
+      const row = document.querySelector(`tr[data-note-id="${note.noteId}"]`);
+      if (row) row.querySelector('.col-audio').innerHTML = '';
+    } catch(e) { showToast(`Error on one note: ${e.message}`, true); }
+  }
+
+  showToast(`Generated audio for ${count} of ${total} note(s)`);
+  clearSelection();
+  selectDeck(currentDeck);
 }
 
 async function burySelected() {

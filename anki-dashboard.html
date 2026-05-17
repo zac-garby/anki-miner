@@ -56,6 +56,7 @@
       <button onclick="burySelected()">Bury</button>
       <button onclick="suspendSelected()">Suspend</button>
       <button class="danger" onclick="deleteSelected()">Delete</button>
+      <button id="bulkAudioBtn" onclick="generateAudioSelected()" disabled>Generate audio (0)</button>
       <button class="small" onclick="clearSelection()" style="margin-left:4px">✕ deselect</button>
     </div>
 
@@ -110,6 +111,10 @@
       <div class="result-value">
         <div class="result-label">Meaning</div>
         <div id="mineMeaning"></div>
+      </div>
+      <div class="result-value">
+        <div class="result-label">Cloze preview</div>
+        <textarea id="mineClozePreview" class="cloze-preview-edit" placeholder="Select words above to generate cloze…" rows="2"></textarea>
       </div>
       <hr style="margin:12px 0">
       <div class="deck-select-row">

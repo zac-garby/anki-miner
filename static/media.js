@@ -113,10 +113,10 @@ function mediaExpandRow(row, sentence, result) {
   const actions = document.createElement('div');
   actions.className = 'media-actions';
 
-  const clozePreview = document.createElement('code');
-  clozePreview.className = 'cloze-preview media-cloze-preview';
-  clozePreview.textContent = 'select a word to generate cloze';
-  clozePreview.style.color = 'rgb(160,155,145)';
+  const clozePreview = document.createElement('textarea');
+  clozePreview.className = 'cloze-preview-edit media-cloze-preview';
+  clozePreview.placeholder = 'Select a word to generate cloze…';
+  clozePreview.rows = 2;
 
   const mineBtn = document.createElement('button');
   mineBtn.textContent = 'Save mining card';
@@ -135,10 +135,11 @@ function mediaExpandRow(row, sentence, result) {
     const item = (result.breakdown || [])[idx];
     if (!item) return;
 
-    // Build cloze: replace the phrase in the sentence with {{c1::text::meaning}}
-    currentCloze = sentence.replace(item.text, `{{c1::${item.text}::${item.meaning}}}`);
-    clozePreview.textContent = currentCloze;
-    clozePreview.style.color = '';
+    // Build cloze: replace the phrase in the sentence with {{c1::text::hint}}
+    const rawHint = item.hint || item.meaning;
+    const safeHint = rawHint.replace(new RegExp(item.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '').replace(/\s{2,}/g, ' ').trim();
+    currentCloze = sentence.replace(item.text, `{{c1::${item.text}::${safeHint}}}`);
+    clozePreview.value = currentCloze;
     mineBtn.disabled = false;
     clozeBtn.disabled = false;
   }
@@ -162,13 +163,14 @@ function mediaExpandRow(row, sentence, result) {
   };
 
   clozeBtn.onclick = async () => {
-    if (!currentCloze) return;
+    const clozeText = clozePreview.value.trim();
+    if (!clozeText) return;
     const deck = document.getElementById('mediaDeckSelect').value || 'Norsk::Sentences';
     try {
       await anki('addNote', { note: {
         deckName: deck,
         modelName: 'Cloze',
-        fields: { Text: currentCloze },
+        fields: { Text: clozeText },
         tags: ['mined', 'media']
       }});
       clozeBtn.textContent = 'Saved';

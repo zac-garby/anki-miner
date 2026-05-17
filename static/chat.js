@@ -269,14 +269,15 @@ function chatBuildAnalysis(analysis) {
     unsavedCards.forEach(card => {
       const row = document.createElement('div');
       row.className = 'analysis-card';
-      const preview = document.createElement('code');
-      preview.className = 'cloze-preview';
-      preview.textContent = card.text;
+      const preview = document.createElement('textarea');
+      preview.className = 'cloze-preview-edit';
+      preview.rows = 2;
+      preview.value = card.text;
       const btn = document.createElement('button');
       btn.className = 'small';
       btn.textContent = 'Save to Anki';
       btn.onclick = async () => {
-        await chatSaveClozeCard(card.text);
+        await chatSaveClozeCard(preview.value.trim() || card.text);
         card.saved = true;
         chatSave();
         row.remove();
@@ -427,7 +428,7 @@ Rules:
 - If there are no issues, return "issues": [], "cards": [], "verdict": "perfect"
 - Only flag genuine errors, not stylistic alternatives
 - Only include a card for actual mistakes, not correct usage
-- The "text" field must use Anki cloze syntax: {{c1::norsk_ord::english prompt}}, {{c2::norsk_ord::english prompt}}, etc. The FIRST part is always the correct Norwegian word/phrase. The SECOND part is ALWAYS a short English hint shown to the learner as a prompt (e.g. "to run", "the dog", "last night"). Never put Norwegian in the hint part.
+- The "text" field must use Anki cloze syntax: {{c1::norsk_ord::hint}}, {{c2::norsk_ord::hint}}, etc. The FIRST part is always the correct Norwegian word/phrase. The SECOND part is a short hint shown to the learner telling them WHAT to fill in — prefer a Norwegian hint when it doesn't reveal the word (e.g. "en hilsen" for a greeting word, "å bevege seg" for a motion verb); otherwise use short English. The hint must NEVER contain the correct Norwegian word/phrase itself.
 - verdict is one of: "perfect", "minor", "major"`;
 
   const resp = await fetch('/messages', {

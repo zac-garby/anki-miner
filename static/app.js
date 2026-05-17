@@ -144,28 +144,33 @@ async function populateDeckSelect(selectId) {
 }
 
 // ── Shared breakdown analysis ─────────────────────────────────
-async function callBreakdownAnalysis(sentence, word = null) {
+async function callBreakdownAnalysis(sentence, word = null, forcedChunks = []) {
   const wordLine = word
     ? `Difficult word/phrase: "${word}"\n\nInclude "${word}" as one of the breakdown items (use the closest match if it appears differently in the sentence). The entirety of "${word}" should be a single breakdown item.`
     : 'No specific word provided — break down the whole sentence and highlight any words or phrases a B1 learner might find tricky.';
 
+  const chunksLine = forcedChunks.length
+    ? `\nThese multi-word phrases must each appear as a single, complete breakdown item (do not split them): ${forcedChunks.map(c => `"${c}"`).join(', ')}`
+    : '';
+
   const prompt = `You are helping a Norwegian language learner with sentence mining.
 
 Sentence: "${sentence}"
-${wordLine}
+${wordLine}${chunksLine}
 
 Please provide:
 1. A natural English translation of the full sentence.
 2. A breakdown of the sentence into meaningful parts. Each part should be a single word, a set phrase, or a notable grammatical construction. For each part give:
    - "text": the word or phrase as it appears in the sentence
-   - "meaning": a brief explanation. For verbs, always identify the correct infinitive form (å + verb) — be careful with irregular past participles and forms that resemble other verbs (e.g. "spydd" is from "å spy", not "å spytte"). Prefer a Norwegian synonym or simple Norwegian definition if a B1 Norwegian learner would understand it; otherwise use an English gloss. Keep it brief (a word or short phrase). Do NOT repeat the word itself as the meaning.
+   - "meaning": a detailed explanation for a language learner. For verbs, always identify the correct infinitive form (å + verb) — be careful with irregular past participles (e.g. "spydd" is from "å spy", not "å spytte"). Include the part of speech and any useful grammatical notes. Prefer Norwegian where a B1 learner would understand it; otherwise English. Keep it concise.
+   - "hint": a SHORT, direct translation used as a cloze card hint — the bare minimum to identify what to fill in (e.g. "yesterday", "went", "again"). Must NOT contain the Norwegian word/phrase itself. Prefer Norwegian if a single short word/phrase works (e.g. "en hilsen" for "hei"); otherwise English. No POS labels, no parenthetical notes — just the core meaning.
 
 Respond in this exact JSON format with no other text:
 {
   "translation": "...",
   "breakdown": [
-    {"text": "...", "meaning": "..."},
-    {"text": "...", "meaning": "..."}
+    {"text": "...", "meaning": "...", "hint": "..."},
+    {"text": "...", "meaning": "...", "hint": "..."}
   ]
 }`;
 
@@ -217,8 +222,8 @@ ${JSON.stringify(breakdown)}
 Here is what the Norwegian dictionary (ordbokene.no) says about each word:
 ${dictLines.join('\n')}
 
-Check each entry. Correct any errors — especially wrong verb infinitives (use exactly å + the lemma the dictionary gives). If everything is correct, return it unchanged. Return ONLY valid JSON:
-{"breakdown": [{"text": "...", "meaning": "..."}]}`;
+Check each entry. Correct any errors — especially wrong verb infinitives (use exactly å + the lemma the dictionary gives). If everything is correct, return it unchanged. Preserve the "hint" field on each item unchanged. Return ONLY valid JSON:
+{"breakdown": [{"text": "...", "meaning": "...", "hint": "..."}]}`;
 
   try {
     const resp = await fetch('/messages', {
